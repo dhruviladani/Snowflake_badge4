@@ -309,9 +309,32 @@ file_format = (type = parquet);
 select * from T_CHERRY_CREEK_TRAIL;
 
 
-set table_name = 'CCT_'||current_account();
+create database my_iceberg_db
+ catalog = 'SNOWFLAKE'
+ external_volume = 'iceberg_external_volume';
 
-create iceberg table identifier($table_name) (
+ CREATE OR REPLACE EXTERNAL VOLUME iceberg_external_volume
+   STORAGE_LOCATIONS =
+      (
+         (
+            NAME = 'iceberg-s3-us-west-2'
+            STORAGE_PROVIDER = 'S3'
+            STORAGE_BASE_URL = 's3://uni-dlkw-iceberg'
+            STORAGE_AWS_ROLE_ARN = 'arn:aws:iam::321463406630:role/dlkw_iceberg_role'
+            STORAGE_AWS_EXTERNAL_ID = 'dlkw_iceberg_id'
+         )
+      );
+
+      DESC EXTERNAL VOLUME iceberg_external_volume;
+
+
+      create or replace database my_iceberg_db
+ catalog = 'SNOWFLAKE'
+ external_volume = 'iceberg_external_volume';
+
+ set table_name = 'CCT_'||current_account();
+
+ create iceberg table identifier($table_name) (
     point_id number(10,0)
     , trail_name string
     , coord_pair string
@@ -326,3 +349,19 @@ create iceberg table identifier($table_name) (
     , distance_to_melanies
     , current_user()
   FROM MELS_SMOOTHIE_CHALLENGE_DB.TRAILS.SMV_CHERRY_CREEK_TRAIL;
+
+
+
+  select GRADER(step, (actual = expected), actual, expected, description) as graded_results from
+(
+  SELECT
+  'DLKW10' as step
+  ,( select row_count
+      from MY_ICEBERG_DB.INFORMATION_SCHEMA.TABLES
+      where table_catalog = 'MY_ICEBERG_DB'
+      and table_name like 'CCT_%'
+      and table_type = 'BASE TABLE')   
+   as actual
+  ,100 as expected
+  ,'Iceberg table created and populated!' as description
+ ); 
